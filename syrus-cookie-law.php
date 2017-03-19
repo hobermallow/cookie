@@ -71,17 +71,24 @@ function syrus_cookie_law_register_settings() {
     'syrus_cookie_law_setting_page',
     'syrus_cookie_law_setting_section',
     array(
-      'label_for' => 'syrus_cookie_law_setting_field_link_text'
+      'label_for' => 'syrus_cookie_law_setting_field_cookie_link'
     )
   );
 }
+
+add_action('admin_init', 'syrus_cookie_law_register_settings');
 
 function syrus_cookie_law_setting_field_cookie_text_cb($args) {
   //recupero le opzioni del plugin
   $options = get_option('syrus_cookie_law_setting_option');
   //stampo l'input field
   ?>
-  <textarea name="<?php echo $args['label_for']; ?>" rows="8" cols="40"><?php if(!is_null($options[$args['label_for']])) echo $options[$args['label_for']]; ?></textarea>
+  <textarea
+    id="<?php echo esc_attr($args['label_for']) ?>"
+    placeholder="Il sito fa uso di cookies per garantirti la migliore esperienza di navigazione"
+    name="syrus_cookie_law_setting_option[<?php echo $args['label_for']; ?>]"
+    rows="8"
+    cols="40"><?php if(!is_null($options[$args['label_for']])) echo $options[$args['label_for']]; ?></textarea>
   <?php
 }
 
@@ -90,7 +97,13 @@ function syrus_cookie_law_setting_field_cookie_link_cb($args) {
   $options = get_option('syrus_cookie_law_setting_option');
   //stampo l'input field
   ?>
-  <input name="<?php echo $args['label_for']; ?>" value="<?php if(!is_null($options[$args['l abel_for']])) echo $options[$args['label_for']]; ?>">
+  <input
+    type="text"
+    size="70"
+    placeholder="www.example.com"
+    id="<?php echo esc_attr($args['label_for']) ?>"
+    name="syrus_cookie_law_setting_option[<?php echo $args['label_for']; ?>]"
+    value="<?php if(!is_null($options[$args['label_for']])) echo $options[$args['label_for']]; ?>">
   <?php
 }
 
@@ -116,32 +129,50 @@ function syrus_cookie_law_setting_page_html() {
        ?>
        <?php submit_button("Salva Impostazioni"); ?>
     </form>
-
   </div>
   <?php
 }
 
 function syrus_cookie_law_register_pages() {
-  //aggiungo la pagina di gestione delle impostazioni del cookie
-  add_menu_page(
-    'Syrus Cookie Law',
-    'Syrus Cookie Law',
-    'read',
-    'syrus_cookie_law_setting_page',
-    'syrus_cookie_law_setting_page_html'
-  );
-}
+  // if ( in_array( 'administrator', (array) $user->roles ) ) {
+    add_menu_page(
+      'Syrus Cookie Law',
+      'Syrus Cookie Law',
+      'manage_options',
+      'syrus_cookie_law_setting_page',
+      'syrus_cookie_law_setting_page_html'
+    );
+  // }
 
-add_action("admin_init", 'syrus_cookie_law_register_pages');
+  }
+  //aggiungo la pagina di gestione delle impostazioni del cookie
+
+add_action("admin_menu", 'syrus_cookie_law_register_pages');
 
 
 /* SEZIONE PER L'INIZIALIZZAZIONE DELLO SCRIPT DI ATTIVAZIONE DEL COOKIE LAW */
 //aggiungo lo script di inizializzazione del cookie law nell'head di wp
 function syrus_cookie_law_initialize() {
+  //recupero le opzioni
+  $options = get_option('syrus_cookie_law_setting_option');
   ?>
   <script>
     window.cookieconsent.initialise({
       container: document.getElementById("content"),
+      content: {
+        <?php if(isset($options['syrus_cookie_law_setting_field_cookie_text']) && $options['syrus_cookie_law_setting_field_cookie_text'] != ""): ?>
+        message: "<?php echo $options['syrus_cookie_law_setting_field_cookie_text']; ?>",
+        <?php else: ?>
+        message: "Questo sito fa uso di cookie per garantirti la migliore esperienza di navigazione",
+        <?php endif; ?>
+        dismiss: "Ho capito",
+        link: "Maggiori informazioni",
+        <?php if(isset($options['syrus_cookie_law_setting_field_cookie_link']) && $options['syrus_cookie_law_setting_field_cookie_link'] != ""): ?>
+        href: "http://"+"<?php echo $options['syrus_cookie_law_setting_field_cookie_link']; ?>",
+        <?php else: ?>
+        href: "http://www.syrusindustry.com",
+        <?php endif; ?>
+      },
       palette:{
         popup: {background: "#fff"},
         button: {background: "#aa0000"},
@@ -152,7 +183,7 @@ function syrus_cookie_law_initialize() {
           'enable cookies' : 'disable cookies');
       },
       law: {
-        regionalLaw: false,
+        regionalLaw: true,
       },
       location: true,
     });
